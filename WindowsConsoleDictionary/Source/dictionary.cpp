@@ -540,7 +540,11 @@ bool my_dictionary::MyDictionary::test_yourself() {
   bool en_or_ua = false;
   Word no_same_word_repeat;
   bool first_time_run = true;
-  if (Data.get_size() < words_amount) return false;  // too few words
+  if (Data.get_size() < words_amount) {
+    add_to_history("Too few words to test yourself, add more words !!!\n");
+    system("cls");
+    return false;
+  }  // too few words
 
   while (!exit) {
     if (generate)  // chose between english words
