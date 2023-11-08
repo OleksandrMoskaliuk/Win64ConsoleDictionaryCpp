@@ -42,7 +42,7 @@ bool my_dictionary::MyDictionary::save_to_file() {
   s.close();
   return true;
 }
-bool my_dictionary::MyDictionary::save_word(Word new_word) {
+bool my_dictionary::MyDictionary::save_word(Word &new_word) {
   if (check_if_exist(new_word.word)) return false;
   // if this is new word
   Data.push_back(new_word);
@@ -57,7 +57,9 @@ bool my_dictionary::MyDictionary::check_if_exist(std::string new_word) {
 bool my_dictionary::MyDictionary::load() {
   std::ifstream file(filename, std::ios::in, std::ios::binary);
   if (!file.is_open()) {
-    std::cout << "failed to open" << filename << '\n';
+    add_to_history(std::string("failed open file: ") +
+                           filename + " file does not exist " + "\n");
+    //std::cout << "failed to open" << filename << '\n';
     return false;
   } else {
     file.seekg(0);
@@ -97,6 +99,137 @@ bool my_dictionary::MyDictionary::load() {
   file.close();
   return true;
 }
+
+bool my_dictionary::MyDictionary::Import() {
+  
+  std::ifstream FileEN(ImportFileNameEN, std::ios::in, std::ios::binary);
+  std::ifstream FileUA(ImportFileNameUA, std::ios::in, std::ios::binary);
+  // If Engish word finded ENcounter + 1;
+  int ENCounter = 0;
+  // Helps to keep order when word saving ;
+  int UACounter = 0;
+  std::vector<Word> SavedWord;
+  if (!FileEN.is_open() || !FileUA.is_open()) {
+    add_to_history(std::string("failed open file: ") + ImportFileNameEN +
+                   " file does not exist " + "\n");
+    // std::cout << "failed to open" << filename << '\n';
+    FileUA.close();
+    FileEN.close();
+    return false;
+  } else {
+    FileEN.seekg(0);
+    FileUA.seekg(0);
+    char symbol_bufferEN = ' ';
+    char symbol_bufferUA = ' ';
+    std::string wordEN = "";
+    std::string wordUA = "";
+    
+    auto WordChecker = [](std::string &word ,int &Counter, std::vector<Word> &WordsArray) {
+      // End of string
+      // remove redunant space if it exist in word
+      std::string without_space = "";
+      for (int index = 0; index < word.size() - 1; ++index) {
+        if (int(word[index]) != int(' ')) {
+          without_space += word[index];
+        }
+      }
+      word = without_space;
+      // Remove redunaant numbers
+      std::string without_number = "";
+      for (int index = 0; index < word.size() - 1; ++index) {
+        if (char(word[index]) <= char(int(48)) ||
+            char(word[index]) >= char(int(57))) {
+          without_number += word[index];
+        }
+      }
+      word = without_number;
+      std::cout << word << std::endl;
+      if (WordsArray.size() <= Counter) {
+        Word UA;
+        UA.word = word;
+        WordsArray.push_back(UA);
+        ++Counter;
+        // std::cout << SavedWord[0].word << std::endl;
+      }
+      word = "";
+    };
+
+    while (FileEN.get(symbol_bufferEN) || FileEN.get(symbol_bufferUA)) {
+      wordEN += symbol_bufferEN;
+      wordUA += symbol_bufferUA;
+      // std::cout << (int)symbol_buffer << std::endl;
+      if ((int)symbol_bufferEN == '\n') {
+        // End of string
+        //remove redunant space if it exist in word
+        std::string without_space = "";
+        for (int index = 0; index < wordEN.size() - 1; ++index) {
+          if (int(wordEN[index]) != int(' ')) {
+            without_space += wordEN[index]; 
+          }
+        } 
+        wordEN = without_space;
+        // Remove redunaant numbers 
+        std::string without_number = "";
+        for (int index = 0; index < wordEN.size() - 1; ++index) {
+          if (char(wordEN[index]) <= char(int(48)) || char(wordEN[index]) >= char(int(57))) 
+          {
+            without_number += wordEN[index];
+          }
+        }
+        wordEN = without_number;
+        std::cout << wordEN << std::endl;
+        if (SavedWord.size() <= ENCounter) {
+          Word EN;
+          EN.word = wordEN;
+          SavedWord.push_back(EN);
+          ++ENCounter;
+          //std::cout << SavedWord[0].word << std::endl; 
+        }
+        wordEN = "";
+      }
+
+      if ((int)symbol_bufferUA == '\n') {
+        // End of string
+        // remove redunant space if it exist in word
+        std::string without_space = "";
+        for (int index = 0; index < wordUA.size() - 1; ++index) {
+          if (int(wordUA[index]) != int(' ')) {
+            without_space += wordUA[index];
+          }
+        }
+        wordUA = without_space;
+        // Remove redunaant numbers
+        std::string without_number = "";
+        for (int index = 0; index < wordUA.size() - 1; ++index) {
+          if (char(wordUA[index]) <= char(int(48)) ||
+              char(wordUA[index]) >= char(int(57))) {
+            without_number += wordUA[index];
+          }
+        }
+        wordUA = without_number;
+        std::cout << wordUA << std::endl;
+        if (SavedWord.size() <= UACounter) {
+          Word UA;
+          UA.word = wordUA;
+          SavedWord.push_back(UA);
+          ++UACounter;
+          // std::cout << SavedWord[0].word << std::endl;
+        }
+        wordUA = "";
+      }
+     
+    }
+  }
+  if (SavedWord.size() >= 0 || ENCounter != UACounter) {
+    for (size_t i = 0; i < SavedWord.size() - 1; i++) {
+      save_word(SavedWord[i]);
+    }
+  }
+  FileUA.close();
+  FileEN.close();
+  return true;
+}
+
 my_dictionary::MyDictionary::MyDictionary() {
   srand(time(NULL));
   load();
@@ -113,7 +246,8 @@ void my_dictionary::MyDictionary::MainLoop() {
   menu_info.push_back("_TEST_YOURSELF");    // case 4
   menu_info.push_back("_SAVE");             // case 5
   menu_info.push_back("_SAVE_AND_EXIT");    // case 6
-  menu_info.push_back("_EXIT");             // case 7
+  menu_info.push_back("_Import");           // case 7
+  menu_info.push_back("_EXIT");             // case 8
   bool print_once = true;
   int choice = 0;
   HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -128,16 +262,17 @@ void my_dictionary::MyDictionary::MainLoop() {
       std::string temp_buffer = menu_info[choice];
       menu_info[choice] =
           std::string(">>> ") + menu_info[choice] + std::string(" <<<");
+      // Print colorfull menu
       for (uint8_t i = 0; i < menu_info.size(); i++) {
         if (i == choice) {
-          SetConsoleTextAttribute(hConsole, 13);
+          SetConsoleTextAttribute(hConsole, 13); // Green
           std::cout << menu_info[i] << "\n";
         } else {
-          SetConsoleTextAttribute(hConsole, 10);
+          SetConsoleTextAttribute(hConsole, 10); // Phiolet
           std::cout << menu_info[i] << "\n";
         }
       }
-      SetConsoleTextAttribute(hConsole, 10);
+      //SetConsoleTextAttribute(hConsole, 10);
       menu_info[choice] = temp_buffer;
       print_history();
       print_once = false;
@@ -282,7 +417,16 @@ void my_dictionary::MyDictionary::MainLoop() {
             _exit(1);
           } break;
 
-          case 7:  // _EXIT
+          case 7:  // _IMPORT
+          {
+            add_to_history(std::string("Importing forom ImportUA.txt/ImportEN.txt: ... ") +
+                           "\n");
+            Import();
+           // Import logic
+           // _exit(1);
+          } break;
+
+          case 8:  // _EXIT
           {
             _exit(1);
           } break;
