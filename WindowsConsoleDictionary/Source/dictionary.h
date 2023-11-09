@@ -44,9 +44,9 @@ class MyDictionary  {
   MyDictionary();
   ~MyDictionary() { save_to_file(); }
   void MainLoop();
-  const char* filename = "dctionary.txt";
-  const char* ImportFileNameEN = "ImportEN.txt";
-  const char* ImportFileNameUA = "ImportUA.txt";
+  const char* filename = "dctionary";
+  const char* ImportFileNameEN = "ImportEN";
+  const char* ImportFileNameUA = "ImportUA";
   void show_dictionary();
   void read();
 

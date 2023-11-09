@@ -72,7 +72,7 @@ bool my_dictionary::MyDictionary::load() {
       // std::cout << (int)symbol_buffer << std::endl;
       if ((int)symbol_buffer == 32) word = "";
       if (std::string("word:").compare(word) == 0) {
-        // removes redunant space
+        // removes redundant space
         file.get(symbol_buffer);
         std::getline(file, word_node.word, '\n');
         word = "";
@@ -109,10 +109,9 @@ bool my_dictionary::MyDictionary::Import() {
   // Helps to keep order when word saving ;
   int UACounter = 0;
   std::vector<Word> SavedWord;
-  if (!FileEN.is_open() || !FileUA.is_open()) {
+  if (!FileEN.is_open() && !FileUA.is_open()) {
     add_to_history(std::string("failed open file: ") + ImportFileNameEN +
                    " file does not exist " + "\n");
-    // std::cout << "failed to open" << filename << '\n';
     FileUA.close();
     FileEN.close();
     return false;
@@ -124,9 +123,9 @@ bool my_dictionary::MyDictionary::Import() {
     std::string wordEN = "";
     std::string wordUA = "";
     
-    auto WordChecker = [](std::string &word ,int &Counter, std::vector<Word> &WordsArray) {
+    auto WordChecker = [](std::string &word ,int &Counter, std::vector<Word> &WordsArray , bool IsTranslation) {
       // End of string
-      // remove redunant space if it exist in word
+      // remove redundant space if it exist in word
       std::string without_space = "";
       for (int index = 0; index < word.size() - 1; ++index) {
         if (int(word[index]) != int(' ')) {
@@ -134,97 +133,59 @@ bool my_dictionary::MyDictionary::Import() {
         }
       }
       word = without_space;
-      // Remove redunaant numbers
+      // Remove redundant numbers
       std::string without_number = "";
       for (int index = 0; index < word.size() - 1; ++index) {
-        if (char(word[index]) <= char(int(48)) ||
-            char(word[index]) >= char(int(57))) {
+        if (char(word[index]) < char(int(48)) ||
+            char(word[index]) > char(int(57))) {
           without_number += word[index];
         }
       }
       word = without_number;
-      std::cout << word << std::endl;
-      if (WordsArray.size() <= Counter) {
-        Word UA;
-        UA.word = word;
-        WordsArray.push_back(UA);
-        ++Counter;
-        // std::cout << SavedWord[0].word << std::endl;
+      // If This is first element we should create new one in vector array
+      Word ENorUA;
+      if (IsTranslation) {
+        ENorUA.translation = word;
+      } else {
+        ENorUA.word = word;
       }
+      if (WordsArray.size() <= Counter) {
+          WordsArray.push_back(ENorUA);
+      }
+      // If in vector element alredy exist , write into this element
+      else {
+          if (IsTranslation) {
+          WordsArray[Counter].translation = ENorUA.translation;
+          } else {
+          WordsArray[Counter].word = ENorUA.word;
+          }
+      }
+      ++Counter;
       word = "";
     };
 
-    while (FileEN.get(symbol_bufferEN) || FileEN.get(symbol_bufferUA)) {
+    while (FileEN.get(symbol_bufferEN) || FileUA.get(symbol_bufferUA)) {
       wordEN += symbol_bufferEN;
       wordUA += symbol_bufferUA;
-      // std::cout << (int)symbol_buffer << std::endl;
+
       if ((int)symbol_bufferEN == '\n') {
-        // End of string
-        //remove redunant space if it exist in word
-        std::string without_space = "";
-        for (int index = 0; index < wordEN.size() - 1; ++index) {
-          if (int(wordEN[index]) != int(' ')) {
-            without_space += wordEN[index]; 
-          }
-        } 
-        wordEN = without_space;
-        // Remove redunaant numbers 
-        std::string without_number = "";
-        for (int index = 0; index < wordEN.size() - 1; ++index) {
-          if (char(wordEN[index]) <= char(int(48)) || char(wordEN[index]) >= char(int(57))) 
-          {
-            without_number += wordEN[index];
-          }
-        }
-        wordEN = without_number;
-        std::cout << wordEN << std::endl;
-        if (SavedWord.size() <= ENCounter) {
-          Word EN;
-          EN.word = wordEN;
-          SavedWord.push_back(EN);
-          ++ENCounter;
-          //std::cout << SavedWord[0].word << std::endl; 
-        }
-        wordEN = "";
+        WordChecker(wordEN, ENCounter, SavedWord, false);
       }
 
       if ((int)symbol_bufferUA == '\n') {
-        // End of string
-        // remove redunant space if it exist in word
-        std::string without_space = "";
-        for (int index = 0; index < wordUA.size() - 1; ++index) {
-          if (int(wordUA[index]) != int(' ')) {
-            without_space += wordUA[index];
-          }
-        }
-        wordUA = without_space;
-        // Remove redunaant numbers
-        std::string without_number = "";
-        for (int index = 0; index < wordUA.size() - 1; ++index) {
-          if (char(wordUA[index]) <= char(int(48)) ||
-              char(wordUA[index]) >= char(int(57))) {
-            without_number += wordUA[index];
-          }
-        }
-        wordUA = without_number;
-        std::cout << wordUA << std::endl;
-        if (SavedWord.size() <= UACounter) {
-          Word UA;
-          UA.word = wordUA;
-          SavedWord.push_back(UA);
-          ++UACounter;
-          // std::cout << SavedWord[0].word << std::endl;
-        }
-        wordUA = "";
+        WordChecker(wordUA, UACounter, SavedWord, true);
       }
      
     }
   }
-  if (SavedWord.size() >= 0 || ENCounter != UACounter) {
+  if (SavedWord.size() >= 0 && ENCounter == UACounter) {
     for (size_t i = 0; i < SavedWord.size() - 1; i++) {
       save_word(SavedWord[i]);
     }
   }
+    else {
+    add_to_history("Import files are empty or word translation not mach\n");
+   }
   FileUA.close();
   FileEN.close();
   return true;
@@ -419,9 +380,11 @@ void my_dictionary::MyDictionary::MainLoop() {
 
           case 7:  // _IMPORT
           {
-            add_to_history(std::string("Importing forom ImportUA.txt/ImportEN.txt: ... ") +
+            add_to_history(std::string("Importing forom ImportUA/ImportEN ... ") +
                            "\n");
             Import();
+            system("cls");
+            print_once = true;
            // Import logic
            // _exit(1);
           } break;
