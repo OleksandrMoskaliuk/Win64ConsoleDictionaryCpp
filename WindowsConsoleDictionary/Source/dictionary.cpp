@@ -126,22 +126,32 @@ bool my_dictionary::MyDictionary::Import() {
     auto WordChecker = [](std::string &word ,int &Counter, std::vector<Word> &WordsArray , bool IsTranslation) {
       // End of string
       // remove redundant space if it exist in word
+      if (!IsTranslation) {
       std::string without_space = "";
-      for (int index = 0; index < word.size() - 1; ++index) {
+      for (int index = 0; index < word.size(); ++index) {
         if (int(word[index]) != int(' ')) {
           without_space += word[index];
         }
       }
       word = without_space;
+      }
       // Remove redundant numbers
       std::string without_number = "";
       for (int index = 0; index < word.size() - 1; ++index) {
-        if (char(word[index]) < char(int(48)) ||
-            char(word[index]) > char(int(57))) {
+        if (char(word[index]) < 48 ||
+            char(word[index]) > 57) {
           without_number += word[index];
         }
       }
       word = without_number;
+      // Remove dots
+      std::string without_dots = "";
+      for (int index = 0; index < word.size() - 1; ++index) {
+        if (char(word[index]) != 46) {
+          without_dots += word[index];
+        }
+      }
+      word = without_dots;
       // If This is first element we should create new one in vector array
       Word ENorUA;
       if (IsTranslation) {
