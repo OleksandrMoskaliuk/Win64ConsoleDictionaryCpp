@@ -220,9 +220,8 @@ void my_dictionary::MyDictionary::MainLoop() {
   menu_info.push_back("_EDIT_WORD");        // case 3
   menu_info.push_back("_TEST_YOURSELF");    // case 4
   menu_info.push_back("_SAVE");             // case 5
-  menu_info.push_back("_SAVE_AND_EXIT");    // case 6
-  menu_info.push_back("_Import");           // case 7
-  menu_info.push_back("_EXIT");             // case 8
+  menu_info.push_back("_Import");           // case 6
+  menu_info.push_back("_EXIT");             // case 7
   bool print_once = true;
   int choice = 0;
   HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -386,13 +385,7 @@ void my_dictionary::MyDictionary::MainLoop() {
             system("cls");
             print_once = true;
           } break;
-          case 6:  // SAVE_AND_EXIT
-          {
-            save_to_file();
-            _exit(1);
-          } break;
-
-          case 7:  // _IMPORT
+          case 6:  // _IMPORT
           {
             add_to_history(std::string("Importing forom ImportUA/ImportEN ... ") +
                            "\n");
@@ -403,9 +396,9 @@ void my_dictionary::MyDictionary::MainLoop() {
            // _exit(1);
           } break;
 
-          case 8:  // _EXIT
+          case 7:  // _EXIT
           {
-            _exit(1);
+            return;
           } break;
 
           default:
