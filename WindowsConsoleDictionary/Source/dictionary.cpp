@@ -100,8 +100,7 @@ bool my_dictionary::MyDictionary::load() {
   return true;
 }
 
-bool my_dictionary::MyDictionary::Import() {
-  
+bool my_dictionary::MyDictionary::Import() { 
   std::ifstream FileEN(ImportFileNameEN, std::ios::in, std::ios::binary);
   std::ifstream FileUA(ImportFileNameUA, std::ios::in, std::ios::binary);
   // If Engish word finded ENcounter + 1;
@@ -124,7 +123,30 @@ bool my_dictionary::MyDictionary::Import() {
     std::string wordUA = "";
     
     auto WordChecker = [](std::string &word ,int &Counter, std::vector<Word> &WordsArray , bool IsTranslation) {
-      // End of string
+      // Remove redundant numbers
+      std::string without_number = "";
+      for (int index = 0; index < word.size() - 1; ++index) {
+        if (char(word[index]) < 48 || char(word[index]) > 57) {
+          without_number += word[index];
+        }
+      }
+      word = without_number;
+      // Remove spaces at begin 
+      std::string no_space_at_begin = "";
+      bool no_space = false;
+      for (int index = 0; index < word.size(); ++index) {
+        if (char(word[index]) != char(' ')) {
+          no_space = true;
+        }
+        if (no_space) {
+          no_space_at_begin += word[index];
+        }
+      }
+      word = no_space_at_begin;
+      // Prevent empty line
+      if (word.size() <= 1) {
+        return;
+      }
       // Remove redundant space if more then one
       std::string without_space = "";
       bool one_space = false;
@@ -141,15 +163,6 @@ bool my_dictionary::MyDictionary::Import() {
         }
       }
       word = without_space;
-      // Remove redundant numbers
-      std::string without_number = "";
-      for (int index = 0; index < word.size() - 1; ++index) {
-        if (char(word[index]) < 48 ||
-            char(word[index]) > 57) {
-          without_number += word[index];
-        }
-      }
-      word = without_number;
       // Remove dots
       std::string without_dots = "";
       for (int index = 0; index < word.size() - 1; ++index) {
@@ -188,6 +201,8 @@ bool my_dictionary::MyDictionary::Import() {
     while (FileUA.get(symbol_bufferUA)) {
       wordUA += symbol_bufferUA;
       if ((int)symbol_bufferUA == '\n') {
+        
+        
         WordChecker(wordUA, UACounter, SavedWord, true);
       }
     }
