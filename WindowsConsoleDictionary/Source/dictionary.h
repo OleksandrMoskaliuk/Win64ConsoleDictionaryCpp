@@ -44,7 +44,9 @@ class MyDictionary  {
   MyDictionary();
   ~MyDictionary() { save_to_file(); }
   void MainLoop();
-  const char* filename = "dctionary.txt";
+  const char* filename = "dctionary";
+  const char* ImportFileNameEN = "ImportEN";
+  const char* ImportFileNameUA = "ImportUA";
   void show_dictionary();
   void read();
 
@@ -54,8 +56,9 @@ class MyDictionary  {
  std::string history;
  bool check_if_exist(std::string new_word);
  bool load();
+ bool Import();
  bool save_to_file();
- bool save_word(Word new_word);
+ bool save_word(Word &new_word);
  bool edit_word(long int index);
  void print_history();
  void add_to_history(std::string str);

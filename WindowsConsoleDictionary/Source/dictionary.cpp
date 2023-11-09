@@ -42,7 +42,7 @@ bool my_dictionary::MyDictionary::save_to_file() {
   s.close();
   return true;
 }
-bool my_dictionary::MyDictionary::save_word(Word new_word) {
+bool my_dictionary::MyDictionary::save_word(Word &new_word) {
   if (check_if_exist(new_word.word)) return false;
   // if this is new word
   Data.push_back(new_word);
@@ -57,7 +57,9 @@ bool my_dictionary::MyDictionary::check_if_exist(std::string new_word) {
 bool my_dictionary::MyDictionary::load() {
   std::ifstream file(filename, std::ios::in, std::ios::binary);
   if (!file.is_open()) {
-    std::cout << "failed to open" << filename << '\n';
+    add_to_history(std::string("failed open file: ") +
+                           filename + " file does not exist " + "\n");
+    //std::cout << "failed to open" << filename << '\n';
     return false;
   } else {
     file.seekg(0);
@@ -70,7 +72,7 @@ bool my_dictionary::MyDictionary::load() {
       // std::cout << (int)symbol_buffer << std::endl;
       if ((int)symbol_buffer == 32) word = "";
       if (std::string("word:").compare(word) == 0) {
-        // removes redunant space
+        // removes redundant space
         file.get(symbol_buffer);
         std::getline(file, word_node.word, '\n');
         word = "";
@@ -97,6 +99,98 @@ bool my_dictionary::MyDictionary::load() {
   file.close();
   return true;
 }
+
+bool my_dictionary::MyDictionary::Import() {
+  
+  std::ifstream FileEN(ImportFileNameEN, std::ios::in, std::ios::binary);
+  std::ifstream FileUA(ImportFileNameUA, std::ios::in, std::ios::binary);
+  // If Engish word finded ENcounter + 1;
+  int ENCounter = 0;
+  // Helps to keep order when word saving ;
+  int UACounter = 0;
+  std::vector<Word> SavedWord;
+  if (!FileEN.is_open() && !FileUA.is_open()) {
+    add_to_history(std::string("failed open file: ") + ImportFileNameEN +
+                   " file does not exist " + "\n");
+    FileUA.close();
+    FileEN.close();
+    return false;
+  } else {
+    FileEN.seekg(0);
+    FileUA.seekg(0);
+    char symbol_bufferEN = ' ';
+    char symbol_bufferUA = ' ';
+    std::string wordEN = "";
+    std::string wordUA = "";
+    
+    auto WordChecker = [](std::string &word ,int &Counter, std::vector<Word> &WordsArray , bool IsTranslation) {
+      // End of string
+      // remove redundant space if it exist in word
+      std::string without_space = "";
+      for (int index = 0; index < word.size() - 1; ++index) {
+        if (int(word[index]) != int(' ')) {
+          without_space += word[index];
+        }
+      }
+      word = without_space;
+      // Remove redundant numbers
+      std::string without_number = "";
+      for (int index = 0; index < word.size() - 1; ++index) {
+        if (char(word[index]) < char(int(48)) ||
+            char(word[index]) > char(int(57))) {
+          without_number += word[index];
+        }
+      }
+      word = without_number;
+      // If This is first element we should create new one in vector array
+      Word ENorUA;
+      if (IsTranslation) {
+        ENorUA.translation = word;
+      } else {
+        ENorUA.word = word;
+      }
+      if (WordsArray.size() <= Counter) {
+          WordsArray.push_back(ENorUA);
+      }
+      // If in vector element alredy exist , write into this element
+      else {
+          if (IsTranslation) {
+          WordsArray[Counter].translation = ENorUA.translation;
+          } else {
+          WordsArray[Counter].word = ENorUA.word;
+          }
+      }
+      ++Counter;
+      word = "";
+    };
+
+    while (FileEN.get(symbol_bufferEN) || FileUA.get(symbol_bufferUA)) {
+      wordEN += symbol_bufferEN;
+      wordUA += symbol_bufferUA;
+
+      if ((int)symbol_bufferEN == '\n') {
+        WordChecker(wordEN, ENCounter, SavedWord, false);
+      }
+
+      if ((int)symbol_bufferUA == '\n') {
+        WordChecker(wordUA, UACounter, SavedWord, true);
+      }
+     
+    }
+  }
+  if (SavedWord.size() >= 0 && ENCounter == UACounter) {
+    for (size_t i = 0; i < SavedWord.size() - 1; i++) {
+      save_word(SavedWord[i]);
+    }
+  }
+    else {
+    add_to_history("Import files are empty or word translation not mach\n");
+   }
+  FileUA.close();
+  FileEN.close();
+  return true;
+}
+
 my_dictionary::MyDictionary::MyDictionary() {
   srand(time(NULL));
   load();
@@ -113,7 +207,8 @@ void my_dictionary::MyDictionary::MainLoop() {
   menu_info.push_back("_TEST_YOURSELF");    // case 4
   menu_info.push_back("_SAVE");             // case 5
   menu_info.push_back("_SAVE_AND_EXIT");    // case 6
-  menu_info.push_back("_EXIT");             // case 7
+  menu_info.push_back("_Import");           // case 7
+  menu_info.push_back("_EXIT");             // case 8
   bool print_once = true;
   int choice = 0;
   HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -128,16 +223,17 @@ void my_dictionary::MyDictionary::MainLoop() {
       std::string temp_buffer = menu_info[choice];
       menu_info[choice] =
           std::string(">>> ") + menu_info[choice] + std::string(" <<<");
+      // Print colorfull menu
       for (uint8_t i = 0; i < menu_info.size(); i++) {
         if (i == choice) {
-          SetConsoleTextAttribute(hConsole, 13);
+          SetConsoleTextAttribute(hConsole, 13); // Green
           std::cout << menu_info[i] << "\n";
         } else {
-          SetConsoleTextAttribute(hConsole, 10);
+          SetConsoleTextAttribute(hConsole, 10); // Phiolet
           std::cout << menu_info[i] << "\n";
         }
       }
-      SetConsoleTextAttribute(hConsole, 10);
+      //SetConsoleTextAttribute(hConsole, 10);
       menu_info[choice] = temp_buffer;
       print_history();
       print_once = false;
@@ -282,7 +378,18 @@ void my_dictionary::MyDictionary::MainLoop() {
             _exit(1);
           } break;
 
-          case 7:  // _EXIT
+          case 7:  // _IMPORT
+          {
+            add_to_history(std::string("Importing forom ImportUA/ImportEN ... ") +
+                           "\n");
+            Import();
+            system("cls");
+            print_once = true;
+           // Import logic
+           // _exit(1);
+          } break;
+
+          case 8:  // _EXIT
           {
             _exit(1);
           } break;
@@ -772,7 +879,7 @@ void my_dictionary::MyDictionary::tets_yourself_word_checker(
   }
   generate = true;
   print_once = true;
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 }
 
 
