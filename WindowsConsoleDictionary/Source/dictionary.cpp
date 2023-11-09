@@ -125,16 +125,22 @@ bool my_dictionary::MyDictionary::Import() {
     
     auto WordChecker = [](std::string &word ,int &Counter, std::vector<Word> &WordsArray , bool IsTranslation) {
       // End of string
-      // remove redundant space if it exist in word
-      if (!IsTranslation) {
+      // Remove redundant space if more then one
       std::string without_space = "";
+      bool one_space = false;
       for (int index = 0; index < word.size(); ++index) {
-        if (int(word[index]) != int(' ')) {
+        if (char(word[index]) == char(' ')) {
+          one_space = true;
           without_space += word[index];
+        } else if (one_space && char(word[index]) == char(' ')) {
+          // Pass space
+        } else if (char(word[index]) != char(' ')) {
+          without_space += word[index];
+          // If there some letter then we can let in one space again
+          one_space = true;
         }
       }
       word = without_space;
-      }
       // Remove redundant numbers
       std::string without_number = "";
       for (int index = 0; index < word.size() - 1; ++index) {
@@ -173,29 +179,27 @@ bool my_dictionary::MyDictionary::Import() {
       ++Counter;
       word = "";
     };
-
-    while (FileEN.get(symbol_bufferEN) || FileUA.get(symbol_bufferUA)) {
+    while (FileEN.get(symbol_bufferEN)) {
       wordEN += symbol_bufferEN;
-      wordUA += symbol_bufferUA;
-
       if ((int)symbol_bufferEN == '\n') {
         WordChecker(wordEN, ENCounter, SavedWord, false);
       }
-
+    }
+    while (FileUA.get(symbol_bufferUA)) {
+      wordUA += symbol_bufferUA;
       if ((int)symbol_bufferUA == '\n') {
         WordChecker(wordUA, UACounter, SavedWord, true);
       }
-     
     }
   }
   if (SavedWord.size() >= 0 && ENCounter == UACounter) {
     for (size_t i = 0; i < SavedWord.size() - 1; i++) {
       save_word(SavedWord[i]);
     }
-  }
-    else {
+  } else 
+  {
     add_to_history("Import files are empty or word translation not mach\n");
-   }
+  }
   FileUA.close();
   FileEN.close();
   return true;
