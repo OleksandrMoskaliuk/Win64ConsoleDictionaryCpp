@@ -125,23 +125,39 @@ bool my_dictionary::MyDictionary::Import() {
     
     auto WordChecker = [](std::string &word ,int &Counter, std::vector<Word> &WordsArray , bool IsTranslation) {
       // End of string
-      // remove redundant space if it exist in word
+      // Remove redundant space if more then one
       std::string without_space = "";
-      for (int index = 0; index < word.size() - 1; ++index) {
-        if (int(word[index]) != int(' ')) {
+      bool one_space = false;
+      for (int index = 0; index < word.size(); ++index) {
+        if (char(word[index]) == char(' ')) {
+          one_space = true;
           without_space += word[index];
+        } else if (one_space && char(word[index]) == char(' ')) {
+          // Pass space
+        } else if (char(word[index]) != char(' ')) {
+          without_space += word[index];
+          // If there some letter then we can let in one space again
+          one_space = true;
         }
       }
       word = without_space;
       // Remove redundant numbers
       std::string without_number = "";
       for (int index = 0; index < word.size() - 1; ++index) {
-        if (char(word[index]) < char(int(48)) ||
-            char(word[index]) > char(int(57))) {
+        if (char(word[index]) < 48 ||
+            char(word[index]) > 57) {
           without_number += word[index];
         }
       }
       word = without_number;
+      // Remove dots
+      std::string without_dots = "";
+      for (int index = 0; index < word.size() - 1; ++index) {
+        if (char(word[index]) != 46) {
+          without_dots += word[index];
+        }
+      }
+      word = without_dots;
       // If This is first element we should create new one in vector array
       Word ENorUA;
       if (IsTranslation) {
@@ -163,29 +179,27 @@ bool my_dictionary::MyDictionary::Import() {
       ++Counter;
       word = "";
     };
-
-    while (FileEN.get(symbol_bufferEN) || FileUA.get(symbol_bufferUA)) {
+    while (FileEN.get(symbol_bufferEN)) {
       wordEN += symbol_bufferEN;
-      wordUA += symbol_bufferUA;
-
       if ((int)symbol_bufferEN == '\n') {
         WordChecker(wordEN, ENCounter, SavedWord, false);
       }
-
+    }
+    while (FileUA.get(symbol_bufferUA)) {
+      wordUA += symbol_bufferUA;
       if ((int)symbol_bufferUA == '\n') {
         WordChecker(wordUA, UACounter, SavedWord, true);
       }
-     
     }
   }
   if (SavedWord.size() >= 0 && ENCounter == UACounter) {
     for (size_t i = 0; i < SavedWord.size() - 1; i++) {
       save_word(SavedWord[i]);
     }
-  }
-    else {
+  } else 
+  {
     add_to_history("Import files are empty or word translation not mach\n");
-   }
+  }
   FileUA.close();
   FileEN.close();
   return true;
@@ -206,9 +220,8 @@ void my_dictionary::MyDictionary::MainLoop() {
   menu_info.push_back("_EDIT_WORD");        // case 3
   menu_info.push_back("_TEST_YOURSELF");    // case 4
   menu_info.push_back("_SAVE");             // case 5
-  menu_info.push_back("_SAVE_AND_EXIT");    // case 6
-  menu_info.push_back("_Import");           // case 7
-  menu_info.push_back("_EXIT");             // case 8
+  menu_info.push_back("_Import");           // case 6
+  menu_info.push_back("_EXIT");             // case 7
   bool print_once = true;
   int choice = 0;
   HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -372,13 +385,7 @@ void my_dictionary::MyDictionary::MainLoop() {
             system("cls");
             print_once = true;
           } break;
-          case 6:  // SAVE_AND_EXIT
-          {
-            save_to_file();
-            _exit(1);
-          } break;
-
-          case 7:  // _IMPORT
+          case 6:  // _IMPORT
           {
             add_to_history(std::string("Importing forom ImportUA/ImportEN ... ") +
                            "\n");
@@ -389,9 +396,9 @@ void my_dictionary::MyDictionary::MainLoop() {
            // _exit(1);
           } break;
 
-          case 8:  // _EXIT
+          case 7:  // _EXIT
           {
-            _exit(1);
+            return;
           } break;
 
           default:
